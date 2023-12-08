@@ -1,46 +1,79 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
 class Estimator:
-    def __init__(self, W, Y):
+    def __init__(self, W, Y, treatment = "W_t" , outcome = "Y_t"):
         self.W = W
         self.Y = Y
+        self.treatment = treatment
+        self.outcome = outcome
 
-    def _calculate_F(self, w, h, t_p):
-        """
-        Calculate the empirical probability F that W is between w-h and w+h
-        up to time t-p, using the historical data.
-        """
-        # Use data only up to t_p (not inclusive) to ensure it's not forward looking
-        historical_data = self.W.iloc[:t_p]
-        return ((historical_data >= w - h) & (historical_data <= w + h)).mean()
+ 
+    
+    def empirical_probability(self, w, h, t_p):
+        data_up_to_t_p = self.W.loc[:t_p]
+        p_w_h = np.mean((data_up_to_t_p[self.treatment] > w - h) & (data_up_to_t_p[self.treatment] <= w + h))
+        return p_w_h
 
-    def estimate(self, w, w_prime, p, h):
-        T = len(self.Y)
-        # Pre-calculate the empirical probabilities for all t-p to avoid looking ahead
-        F_w = [self._calculate_F(w, h, t_p) for t_p in range(p, T)]
-        F_w_prime = [self._calculate_F(w_prime, h, t_p) for t_p in range(p, T)]
+    def cumulative_distribution_function(self, w, t):
+        data_up_to_t = self.W.loc[:t]
+        cdf_w = np.mean(data_up_to_t[self.treatment] <= w)
+        return cdf_w
+
+    def indicator_function(self, w, h, t):
+        W_t = self.W.loc[t, self.treatment]
+        indicator_w = 1 if (W_t > w - h) and (W_t <= w + h) else 0
+        return indicator_w
+
+    def find_closest_time(self, t, y_time_index):
+        closest_index = y_time_index.get_indexer([t], method='nearest')[0]
+        return y_time_index[closest_index]
+
+    def compute_sum_element(self, t_p, p, h, w, w_prime):
+        t = t_p + pd.DateOffset(days=p)
+        t_p_1 = t_p - pd.DateOffset(days=1)
         
-        # Calculate the indicators
-        indicator_w = ((self.W >= (w - h)) & (self.W <= (w + h))).astype(int)
-        indicator_w_prime = ((self.W >= (w_prime - h)) & (self.W <= (w_prime + h))).astype(int)
+        if t in self.Y.index:
+            Y_t = self.Y.loc[t, self.outcome]
+        else:
+            closest_time_to_t = self.find_closest_time(t, self.Y.index)
+            Y_t = self.Y.loc[closest_time_to_t, self.outcome]
 
-        # Calculate the shifted Y values once for efficiency
-        Y_shifted = self.Y.shift(p)
+        if t_p_1 in self.Y.index:
+            Y_t_p_1 = self.Y.loc[t_p_1, self.outcome]
+        else:
+            closest_time_to_t_p_1 = self.find_closest_time(t_p_1, self.Y.index)
+            Y_t_p_1 = self.Y.loc[closest_time_to_t_p_1, self.outcome]
 
-        # Nonparametric estimator for tau
-        tau_sum = 0
-        var_sum = 0
-        for t_p in range(p, T):
-            tau_numerator = ((self.Y.iloc[t_p] - Y_shifted.iloc[t_p]) * 
-                             (indicator_w.iloc[t_p] - indicator_w_prime.iloc[t_p]) / 
-                             (F_w[t_p-p] - F_w_prime[t_p-p]))
-            tau_sum += tau_numerator
-            
-            # Variance estimator for tau
-            var_numerator = (((self.Y.iloc[t_p] - Y_shifted.iloc[t_p])**2) * 
-                             (indicator_w.iloc[t_p] + indicator_w_prime.iloc[t_p]))
-            var_sum += var_numerator
+        p_w_h = self.empirical_probability(self.W.loc[t_p, self.treatment], h, t_p)
+        indicator_w = self.indicator_function(w, h, t_p)
+        indicator_w_prime = self.indicator_function(w_prime, h, t_p)
 
-        tau_hat = tau_sum / (T - p)
-        v_k_squared = var_sum / (T - p)
-        var_tau_hat = (h**-1) * v_k_squared / (T - p)
+        if p_w_h > 0:
+            sum_element = (Y_t - Y_t_p_1) * (indicator_w - indicator_w_prime) / p_w_h
+        else:
+            sum_element = np.nan
+        return sum_element
 
-        return tau_hat, var_tau_hat
+    def compute_estimator(self, p, h, w, w_prime, min_obs=10):
+        sum_elements = []
+        for t_p in self.W.index[min_obs:]:
+            sum_element = self.compute_sum_element(t_p, p, h, w, w_prime)
+            sum_elements.append(sum_element)
+
+        estimator = np.nanmean(sum_elements)
+        return estimator
+
+    def plot_effect(self, h, w, w_prime, p_range, min_obs=10):
+        estimators = []
+        for p in p_range:
+            estimator = self.compute_estimator(p, h, w, w_prime, min_obs)
+            estimators.append(estimator)
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(p_range, estimators, marker='o')
+        plt.xlabel('Lag (p)')
+        plt.ylabel('Estimated Value')
+        plt.title('Estimator Values as a Function of Lag')
+        plt.show()
