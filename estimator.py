@@ -9,8 +9,7 @@ class Estimator:
         self.treatment = treatment
         self.outcome = outcome
 
- 
-    
+
     def empirical_probability(self, w, h, t_p):
         data_up_to_t_p = self.W.loc[:t_p]
         p_w_h = np.mean((data_up_to_t_p[self.treatment] > w - h) & (data_up_to_t_p[self.treatment] <= w + h))
