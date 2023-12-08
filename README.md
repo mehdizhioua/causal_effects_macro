@@ -1,2 +1,11 @@
 # Dynamic Causal Model for Macroeconometrics
 Implementation of the potential outcome time series framework in the context of macroeconomic variables, following the approach presented in  "A nonparametric dynamic causal model for macroeconometric" by Rambashan and Shephard  
+
+# Some pracital considerations
+When computing the given estimator, several practical considerations must be taken into account to ensure the accuracy and reliability of the results:
+
+1. **Treatment Observations**: The computation begins by considering observations of the treatment variable \( W \) at time \( t-p \). It's critical to use actual observed data points for the treatment variable rather than interpolated values. This approach maintains the integrity of the causal inference by ensuring that the treatment is anchored in actual events or interventions that occurred at specific points in time, rather than estimates or averages that could introduce bias or misrepresent the temporal dynamics of the treatment effect.
+
+2. **Outcome Observations**: The outcome variable \( Y \) is evaluated at the closest available times \( t \) and \( t-p-1 \). This method accounts for potential irregularities in data collection, such as missing values that might arise from less frequent data release schedules. For example, if the outcome data is not released daily, there might not be a direct match for every \( t \) and \( t-p-1 \) corresponding to the treatment times. By selecting the closest available outcome data, the method pragmatically adapts to the available data while attempting to minimize the time discrepancy between the treatment and outcome measurements. This approach is particularly important in longitudinal studies or in cases where data collection is subject to delays or is only available at periodic intervals.
+
+In practice, this means that the estimator is not simply a theoretical construct but is calculated in a way that reflects the real-world process of data collection, with all its potential gaps and irregularities. This approach enhances the estimator's applicability to actual scenarios, acknowledging that perfect datasets are rare and that analysts often have to make the best use of imperfect data.
