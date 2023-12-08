@@ -50,29 +50,43 @@ class Estimator:
         indicator_w_prime = self.indicator_function(w_prime, h, t_p)
 
         if p_w_h > 0:
-            sum_element = (Y_t - Y_t_p_1) * (indicator_w - indicator_w_prime) / p_w_h
+            sum_element_tau = (Y_t - Y_t_p_1) * (indicator_w - indicator_w_prime) / p_w_h
+            sum_element_var = ((Y_t - Y_t_p_1)**2) * (indicator_w + indicator_w_prime) / (p_w_h**2)
         else:
-            sum_element = np.nan
-        return sum_element
+            sum_element_tau = np.nan
+            sum_element_var = np.nan
+        return sum_element_tau, sum_element_var
 
     def compute_estimator(self, p, h, w, w_prime, min_obs=10):
-        sum_elements = []
+        sum_elements_tau = []
+        sum_elements_var = []
         for t_p in self.W.index[min_obs:]:
-            sum_element = self.compute_sum_element(t_p, p, h, w, w_prime)
-            sum_elements.append(sum_element)
+            sum_element_tau, sum_element_var = self.compute_sum_element(t_p, p, h, w, w_prime)
+            sum_elements_tau.append(sum_element_tau)
+            sum_elements_var.append(sum_element_var)
 
-        estimator = np.nanmean(sum_elements)
-        return estimator
+        tau = np.nanmean(sum_elements_tau)
+        var = np.nanmean(sum_elements_var)
+        return tau, var
 
     def plot_effect(self, h, w, w_prime, p_range, min_obs=10):
         estimators = []
+        stds = []
         for p in p_range:
-            estimator = self.compute_estimator(p, h, w, w_prime, min_obs)
+            estimator,var= self.compute_estimator(p, h, w, w_prime, min_obs)
             estimators.append(estimator)
+            stds.append(np.sqrt(var))
+
+        estimators = np.array(estimators)
+        stds = np.array(stds)
 
         plt.figure(figsize=(10, 6))
-        plt.plot(p_range, estimators, marker='o')
+        plt.plot(p_range, estimators, marker='o', label='Estimator')
+        plt.plot(p_range, estimators + stds, linestyle='--', color='grey', label='Estimator + 1 STD')
+        plt.plot(p_range, estimators - stds, linestyle='--', color='grey', label='Estimator - 1 STD')
         plt.xlabel('Lag (p)')
         plt.ylabel('Estimated Value')
-        plt.title('Estimator Values as a Function of Lag')
+        plt.title('Estimator Values as a Function of Lag with Confidence Intervals')
+        plt.legend()
         plt.show()
+
