@@ -15,45 +15,64 @@ In practice, this means that the estimator is not simply a theoretical construct
 
 
 
-# Example Usage of `local_projection`
 
-The `local_projection` method can be used to estimate the causal effect of a treatment variable at a specific lag while controlling for other variables and additional lags of both the treatment and outcome variables. Here's an example of how to use this method:
+## Code Usage
+
+#### `compute_estimator` Method
+The `compute_estimator` method computes a specific causal estimator. It is based on the following formula:
+
+\[ \text{Estimator} = \frac{1}{T - p} \sum_{t=p+1}^{T} \left( \frac{Y_{t} - Y_{t-p-1}}{F_{t-p}(W_{t-p} + h) - F_{t-p}(W_{t-p} - h)} \right) \times \left( I_{[W_{t-p}, W_{t-p} + h]} - I_{[W'_{t-p}, W'_{t-p} + h]} \right) \]
+
+Here is an example of how to use the `compute_estimator` method:
 
 ```python
-# Estimating the local projection at a specific lag
+# Compute the estimator with specified parameters
+estimator_value = estimator.compute_estimator(
+    p=10,        # Lag period of 10
+    h=5,         # Bandwidth of 5
+    w=25,        # Treatment value w
+    w_prime=-25, # Comparison treatment value w'
+    min_obs=10   # Minimum number of observations
+)
+```
+
+#### `plot_effect` Method
+The `plot_effect` method is used to visualize the estimator over a range of lags. Here's an example:
+
+```python
+# Plot the effect of the treatment over a range of lags
+estimator.plot_effect(
+    h=15,                            # Bandwidth parameter
+    w=75,                            # Treatment value w
+    w_prime=0,                       # Comparison treatment value w'
+    p_range=[k for k in range(1, 750, 10)], # Range of lags to consider
+    min_obs=10                       # Minimum number of observations
+)
+```
+
+#### `local_projection` Method
+Use `local_projection` to estimate causal effects at specific lags with control variables and lags of treatment and outcome:
+
+```python
 beta_estimate, beta_std_error = estimator.local_projection(
-    p=200,  # Lag of 200 days
-    min_obs=50,  # Minimum number of observations
-    other_controls=["USURTOT Index", "IP CHNG Index"],  # Other control variables
-    lagW=[30],  # Additional 30-day lag of the treatment variable
-    lagY=[0]  # Include the current value (lag 0) of the outcome variable
+    p=200,
+    min_obs=50,
+    other_controls=["USURTOT Index", "IP CHNG Index"],
+    lagW=[30],
+    lagY=[0]
 )
 ```
 
-- `p=200`: Specifies the lag (in days) at which the treatment effect is estimated.
-- `min_obs=50`: Sets the minimum number of observations required to compute the estimator.
-- `other_controls=["USURTOT Index", "IP CHNG Index"]`: Includes additional control variables in the model.
-- `lagW=[30]`: Adds a 30-day lag of the treatment variable as an additional control.
-- `lagY=[0]`: Includes the current value (lag 0) of the outcome variable as a control.
-
-### Example Usage of `plot_local_projection`
-
-The `plot_local_projection` method is used to visualize how the estimated causal effect changes across a range of lags. Here's an example of how to use this method:
+#### `plot_local_projection` Method
+`plot_local_projection` visualizes estimated causal effects across different lags:
 
 ```python
-# Plotting the local projection across a range of lags
 estimator.plot_local_projection(
-    p_range=[k for k in range(1, 750, 10)],  # Range of lags from 1 to 750 with a step of 10
-    min_obs=50,  # Minimum number of observations
-    other_controls=["USURTOT Index", "IP CHNG Index"],  # Other control variables
-    lagW=[30],  # Additional 30-day lag of the treatment variable
-    lagY=[0]  # Include the current value (lag 0) of the outcome variable
+    p_range=[k for k in range(1, 750, 10)],
+    min_obs=50,
+    other_controls=["USURTOT Index", "IP CHNG Index"],
+    lagW=[30],
+    lagY=[0]
 )
 ```
 
-- `p_range=[k for k in range(1, 750, 10)]`: Defines a range of lags to explore, from 1 to 750 days, in steps of 10 days.
-- The other arguments (`min_obs`, `other_controls`, `lagW`, `lagY`) are similar to those in `local_projection`.
-
----
-
-These examples provide a clear guide on how to utilize the `local_projection` and `plot_local_projection` methods in practical scenarios, showcasing the flexibility of the Estimator class in handling various types of controls and lags for comprehensive causal analysis.
