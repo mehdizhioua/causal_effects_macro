@@ -305,3 +305,66 @@ class Estimator:
         plt.title('Local Projection as a Function of Lag')
         plt.legend()
         plt.show()
+
+    def regress_treatment(self, p, features):
+        """
+        Regression of W_t on W_{t-p} and specified lags of W and other features.
+
+        :param p: lag
+        :param features: dictionary mapping feature names to lists of lags
+        :return: regression results
+        """
+        data = []
+        Y_values = [] #should be understood as "target of the regression", not "ouctome Y" !!
+        actual_times = []
+
+        for t in self.W.index:
+            row = {}
+            if "W" in features:
+                for lag in features.get("W", []):
+                    lagged_time = t - pd.DateOffset(days=p + lag)
+                    closest_time_to_lagged = self.find_closest_time_no_lookahead(lagged_time, self.W.index, self.W[self.treatment])
+                    row[f'W_lag_{lag}'] = self.W.loc[closest_time_to_lagged, self.treatment]
+
+            # Add lags of other features
+            for feature, lags in features.items():
+                if feature == "W":
+                    continue  # Skip W as it's already handled
+                for lag in lags:
+                    lagged_time = t - pd.DateOffset(days=p + lag)
+
+                    try:
+                        closest_time_to_lagged = self.find_closest_time(lagged_time, self.Y.index, self.Y[feature])
+                        row[f'{feature}_lag_{lag}'] = self.Y.loc[closest_time_to_lagged, feature]
+                    except:
+                        row[f'{feature}_lag_{lag}'] = np.nan
+
+            # Append the row to data if it's complete (no NaNs)
+            if not any(pd.isna(val) for val in row.values()):
+                data.append(row)
+                Y_values.append(self.W.loc[t, self.treatment])
+                actual_times.append(t)
+
+        # Convert data to DataFrame for regression
+        X_df = pd.DataFrame(data)
+        Y_values = np.array(Y_values)
+
+        # Add a constant to the model for the intercept
+        X_df = sm.add_constant(X_df)
+
+        # Perform the regression
+        regression_model = sm.OLS(Y_values, X_df)
+        regression_results = regression_model.fit()
+
+        # Get predicted values and residuals
+        predicted_W = regression_results.predict(X_df)
+
+        # Create a DataFrame with actual and predicted values of W
+
+        results_df = pd.DataFrame({
+            'Actual_W': Y_values,
+            'Predicted_W': predicted_W.values
+        }, index=actual_times)
+
+        return regression_results, results_df
+
