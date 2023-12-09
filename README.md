@@ -11,7 +11,6 @@ When computing the given estimator, several practical considerations must be tak
 
 3. **No Lookahead for Regressors**: When finding the closest times for the regressors (treatment and controls), the `find_closest_time_no_lookahead` function is employed to ensure that there is no anticipation of future values. This means that for each regressor at time \( t-p \) or \( t-p-i \) (for lags), we are careful to use the closest past or present value without inadvertently using data from the future. This approach is crucial for preserving the causal interpretation of the analysis, as it avoids introducing forward-looking bias into the regressors.
 
-In practice, this means that the estimator is not simply a theoretical construct but is calculated in a way that reflects the real-world process of data collection, with all its potential gaps and irregularities. This approach enhances the estimator's applicability to actual scenarios, acknowledging that perfect datasets are rare and that analysts often have to make the best use of imperfect data. The distinction in the handling of outcome and regressor variables underscores the nuanced approach required in empirical analysis to balance data availability with methodological rigor.
 
 
 
