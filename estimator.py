@@ -265,7 +265,7 @@ class Estimator:
 
         # Perform the regression to estimate beta
         regression_model = sm.OLS(Y_values, X_values_df)
-        regression_results = regression_model.fit()
+        regression_results = regression_model.fit(cov_type='HC3')
 
         # Print the regression summary
 
