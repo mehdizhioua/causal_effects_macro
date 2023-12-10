@@ -111,6 +111,8 @@ class Estimator:
             closest_time_to_t_p_1 = self.find_closest_time(t_p_1, self.Y.index, self.Y[self.outcome])
             Y_t_p_1 = self.Y.loc[closest_time_to_t_p_1, self.outcome]
 
+
+        
         p_w_h = self.empirical_probability(self.W.loc[t_p, self.treatment], h, t_p)
         indicator_w = self.indicator_function(w, h, t_p)
         indicator_w_prime = self.indicator_function(w_prime, h, t_p)
